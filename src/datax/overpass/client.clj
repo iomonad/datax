@@ -13,20 +13,23 @@
   (format "[%s=\"%s\"]"
           (name k) v))
 
-(defn build-query [request]
+(defn build-query [area request]
   "Build query string from clojure datastructure"
   (when (map? request)
     (let [fields (map (fn [[k v]] (build-field k v)) request)]
-      (format "node%s;out;" (string/join "" fields)))))
+      (format "area[name=\"%s\"];node%s;out;" area
+              (string/join "" fields)))))
 
 (defn sanitize-data [body]
   "Clean response body"
   (-> body :content
       (#(f/filter-by-presence % {:tag :node}))))
 
-(defn overpass-request [r]
+(defn overpass-request
+  [r & {:keys [area]
+        :or {area "Paris"}}]
   "Compute request "
-  (when-let [payload (build-query r)]
+  (when-let [payload (build-query area r)]
     (try
       (->
        (client/get api-endpoint {:query-params {"data" payload}
@@ -36,4 +39,6 @@
        sanitize-data)
       (catch Exception e {:failure (.getMessage e)}))))
 
-;; (overpass-request {:operator "Orange"})
+(comment
+  (overpass-request {:operator "Orange"}
+                    :area "Paris"))
